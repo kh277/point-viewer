@@ -6,6 +6,8 @@ def CCW(a, b, c):
 
 # Convex Hull 구하기
 def convex_hull(points_X, points_Y):
+    if len(points_X) < 3:
+        return points_X, points_Y
     
     graph = [(points_Y[i], points_X[i]) for i in range(len(points_X))]
     
