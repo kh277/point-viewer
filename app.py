@@ -11,7 +11,7 @@ def init():
         page_icon="./images/logo.png")
 
     # 제목 설정
-    st.title("Streamlit 응용 좌표그리기 예제")
+    st.title("다각형 시각화 툴")
 
     # 기본 CSS 문법 설정
     st.markdown("""
@@ -24,7 +24,7 @@ def init():
         .font15 { font-size: 15px; }
     </style>
     """, unsafe_allow_html=True)
-    
+
 
 # 좌표 및 처리 옵션 반환
 def getOption():
@@ -34,21 +34,21 @@ def getOption():
     pointString = st.text_area("(ex: (0, 0), (2, 3)인 경우 0 0 2 3으로 입력.)")
 
     # 옵션 선택 필드
-    outline = st.radio('윤곽선 선택', ['외곽선 미표시', '외곽선 표시', '볼록 껍질'])
+    outline = st.radio('윤곽선 선택', ['외곽선 미표시', '외곽선 표시', '외곽선 표시 (+볼록 껍질)'])
     visual = st.button("시각화")
 
     return [pointString, [outline, visual]]
 
 
 # 점이 올바르게 입력되었는지 확인
-def checkPoint(point: list):
+def checkPoint(point):
     # 점 체크
     if len(point) > 0:
-        temp = list(map(int, point.split()))
+        temp = list(map(float, point.split()))
 
         # 입력 좌표 수가 짝수인지 체크
         if len(temp) % 2 == 1 or len(temp) == 0:
-            st.write("좌표 개수를 짝수로 입력해주세요.")
+            st.write("짝수 개의 좌표를 입력해주세요.")
             return [False, [], []]
         else:
             pointX = []
@@ -63,7 +63,7 @@ def checkPoint(point: list):
         return [False, [], []]
 
 
-def visualize(pointX, pointY, option: list):
+def visualize(pointX, pointY, option):
     minX, maxX = min(pointX), max(pointX)
     minY, maxY = min(pointY), max(pointY)
 
@@ -77,15 +77,24 @@ def visualize(pointX, pointY, option: list):
     plt.ylim(minY - marginY, maxY + marginY)
     plt.grid(color='gray', linestyle='--', linewidth=1)
 
-    # 옵션에 따른 좌표 출력
+    # 옵션에 따른 그래프 출력
+    closedX = pointX + [pointX[0]]
+    closedY = pointY + [pointY[0]]
+    hullX, hullY = ch.ConvexHull(pointX, pointY)
+    lineStyle = '-'
+    hullStyle = '-'
     if option[0] == '외곽선 미표시':
-        plt.plot(pointX, pointY, marker='o', linestyle='', color='red')
+        lineStyle = ''
+        hullStyle = ''
     elif option[0] == '외곽선 표시':
-        plt.plot(pointX, pointY, marker='o', linestyle='-', color='red')
+        hullStyle = ''
     elif option[0] == '볼록 껍질':
-        hullX, hullY = ch.ConvexHull(pointX, pointY)
-        plt.plot(pointX, pointY, marker='o', linestyle='', color='red')
-        plt.plot(hullX, hullY, marker='o', linestyle='-', color='blue')
+        closedX = pointX + [pointX[0]]
+        closedY = pointY + [pointY[0]]
+
+    plt.plot(closedX, closedY, marker='', linestyle=lineStyle, color='black', linewidth=3.5)
+    plt.plot(hullX, hullY, linestyle=hullStyle, color='red', linewidth=1.5)
+    plt.plot(pointX, pointY, marker='o', linestyle='', color='black')
 
     st.pyplot(plt)
 
