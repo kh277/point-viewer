@@ -1,33 +1,26 @@
-def CCW(a, b, c):
-    # 양수(반시계), 0(일직선), 음수(시계)
-    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+def CCW(A, B, C):
+    return (B[0]-A[0]) * (C[1]-A[1]) - (B[1]-A[1]) * (C[0]-A[0])
 
 
-def ConvexHull(pointX, pointY):
-    graph = [(pointY[i], pointX[i]) for i in range(len(pointX))]
-    
+def ConvexHull(points):
     # x좌표 오름차순으로 정렬
-    graph = sorted(set(graph))
+    points = sorted(set(points))
 
-    # 아래쪽 Hull을 구함
+    # 아래쪽 Hull 구하기
     lower = []
-    for i in graph:
+    for point in points:
         # 반시계 방향이 아닐 경우 마지막 점 제거
-        while len(lower) >= 2 and CCW(lower[-2], lower[-1], i) <= 0:
+        while len(lower) >= 2 and CCW(lower[-2], lower[-1], point) <= 0:
             lower.pop()
-        lower.append(i)
-        
-    # 위쪽 Hull을 구함
+        lower.append(point)
+
+    # 위쪽 Hull 구하기
     upper = []
-    for i in reversed(graph):
+    for point in reversed(points):
         # 반시계 방향이 아닐 경우 마지막 점 제거
-        while len(upper) >= 2 and CCW(upper[-2], upper[-1], i) <= 0:
+        while len(upper) >= 2 and CCW(upper[-2], upper[-1], point) <= 0:
             upper.pop()
-        upper.append(i)
-    
+        upper.append(point)
+
     # 아래쪽 Hull과 위쪽 Hull을 중복제거하여 합치기
-    result = lower[:-1] + upper[:-1]
-    resultX = [result[i%len(result)][1] for i in range(len(result)+1)]
-    resultY = [result[i%len(result)][0] for i in range(len(result)+1)]
-    
-    return resultX, resultY
+    return lower[:-1] + upper[:-1]

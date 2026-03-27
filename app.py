@@ -1,6 +1,9 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-import ConvexHull as ch
+from ConvexHull import ConvexHull
+from CCWsort import sortCCW
+
+INF = 1000000000000
 
 
 # 기본 세팅
@@ -34,7 +37,7 @@ def getOption():
     pointString = st.text_area("(ex: (0, 0), (2, 3)인 경우 0 0 2 3으로 입력.)")
 
     # 옵션 선택 필드
-    outline = st.radio('윤곽선 선택', ['외곽선 미표시', '외곽선 표시', '외곽선 표시 (+볼록 껍질)'])
+    outline = st.radio('', ['점 표시', '외곽선 표시 (입력 순서대로)', '외곽선 표시 (반시계 방향 정렬)', '외곽선 표시 (+볼록 껍질)'])
     visual = st.button("시각화")
 
     return [pointString, [outline, visual]]
@@ -49,52 +52,65 @@ def checkPoint(point):
         # 입력 좌표 수가 짝수인지 체크
         if len(temp) % 2 == 1 or len(temp) == 0:
             st.write("짝수 개의 좌표를 입력해주세요.")
-            return [False, [], []]
+            return []
         else:
-            pointX = []
-            pointY = []
+            points = []
             for i in range(len(temp)//2):
-                pointX.append(temp[i*2])
-                pointY.append(temp[i*2+1])
-
-            return [True, pointX, pointY]
+                points.append((temp[i<<1], temp[i<<1 | 1]))
+            return points
     else:
         st.write("좌표를 입력해주세요.")
-        return [False, [], []]
+        return []
 
 
-def visualize(pointX, pointY, option):
-    minX, maxX = min(pointX), max(pointX)
-    minY, maxY = min(pointY), max(pointY)
+def visualize(points, option):
+    # 좌표 전처리
+    hull = ConvexHull(points)
+    sortedCCW = sortCCW(points)
+    points.append(points[0])
+    hull.append(hull[0])
+    sortedCCW.append(sortedCCW[0])
+
+    minX, maxX = INF, -INF
+    minY, maxY = INF, -INF
+    for x, y in points:
+        minX = min(minX, x)
+        maxX = max(maxX, x)
+        minY = min(minY, y)
+        maxY = max(maxY, y)
 
     # 그래프 기본 설정
+    marginX = (maxX-minX) * 0.1
+    marginY = (maxY-minY) * 0.1
     plt.figure(figsize=(10, 10))
     plt.xlabel('X')
     plt.ylabel('Y')
-    marginX = (maxX-minX) * 0.1
-    marginY = (maxY-minY) * 0.1
     plt.xlim(minX - marginX, maxX + marginX)
     plt.ylim(minY - marginY, maxY + marginY)
     plt.grid(color='gray', linestyle='--', linewidth=1)
 
     # 옵션에 따른 그래프 출력
-    closedX = pointX + [pointX[0]]
-    closedY = pointY + [pointY[0]]
-    hullX, hullY = ch.ConvexHull(pointX, pointY)
+    targetPoints = points
     lineStyle = '-'
-    hullStyle = '-'
-    if option[0] == '외곽선 미표시':
+    hullStyle = ''
+    if option[0] == '점 표시':
         lineStyle = ''
-        hullStyle = ''
-    elif option[0] == '외곽선 표시':
-        hullStyle = ''
-    elif option[0] == '볼록 껍질':
-        closedX = pointX + [pointX[0]]
-        closedY = pointY + [pointY[0]]
+    elif option[0] == '외곽선 표시 (입력 순서대로)':
+        pass
+    elif option[0] == '외곽선 표시 (반시계 방향 정렬)':
+        targetPoints = sortedCCW
+    elif option[0] == '외곽선 표시 (+볼록 껍질)':
+        targetPoints = sortedCCW
+        hullStyle = '-'
 
-    plt.plot(closedX, closedY, marker='', linestyle=lineStyle, color='black', linewidth=3.5)
-    plt.plot(hullX, hullY, linestyle=hullStyle, color='red', linewidth=1.5)
-    plt.plot(pointX, pointY, marker='o', linestyle='', color='black')
+    # 외곽선 표시
+    plt.plot(*zip(*targetPoints), marker='', linestyle=lineStyle, color='black', linewidth=3)
+
+    # 볼록 껍질 표시
+    plt.plot(*zip(*hull), linestyle=hullStyle, color='red', linewidth=1.5)
+
+    # 점 표시
+    plt.plot(*zip(*points), marker='o', linestyle='', color='black')
 
     st.pyplot(plt)
 
@@ -107,9 +123,9 @@ def main():
     pointString, option = getOption()
 
     # 3. 점이 올바르게 입력되었다면 그래프 시각화
-    isRight, pointX, pointY = checkPoint(pointString)
-    if isRight == True:
-        visualize(pointX, pointY, option)
+    points = checkPoint(pointString)
+    if len(points) > 0:
+        visualize(points, option)
 
 
 main()
